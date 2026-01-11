@@ -14,20 +14,33 @@ const SIMILARITY_THRESHOLD = 0.3;
 type QuestionIntent =
   | "HR_POLICY"
   | "EMPLOYEE_SELF_DATA"
+  | "OTHER_EMPLOYEE_DATA"
   | "HR_OPERATIONAL_DATA";
+
+// Target detection result
+type QuestionTarget = {
+  isSelfQuestion: boolean;
+  targetEmployeeName?: string;
+};
 
 // System prompts per intent
 const SYSTEM_PROMPTS: Record<QuestionIntent, string> = {
   HR_POLICY: `Anda adalah asisten HR profesional berbahasa Indonesia.
-Jawab pertanyaan tentang kebijakan HR berdasarkan dokumen yang diberikan.
+Jawab pertanyaan tentang kebijakan HR berdasarkan informasi yang diberikan.
+Jika ada data karyawan (saldo cuti, kuota), gunakan data tersebut untuk menjawab.
 Gunakan bahasa Indonesia yang formal dan profesional.
-Jika kebijakan tidak ditemukan dalam dokumen, jawab: "Kebijakan tersebut tidak ditemukan dalam dokumen HR yang tersedia."`,
+Berikan jawaban yang informatif dan membantu.`,
 
   EMPLOYEE_SELF_DATA: `Anda adalah asisten HR profesional berbahasa Indonesia.
 Jawab pertanyaan karyawan tentang data pribadi mereka (absensi, cuti, lembur).
 Data karyawan sudah disediakan dalam konteks - GUNAKAN data tersebut untuk menjawab.
 Berikan jawaban yang ringkas dan langsung ke poin.
 Jangan pernah menjawab "informasi tidak tersedia" jika data sudah ada dalam konteks.`,
+
+  OTHER_EMPLOYEE_DATA: `Anda adalah asisten HR profesional berbahasa Indonesia.
+Jawab pertanyaan tentang data karyawan lain berdasarkan konteks yang diberikan.
+Hanya berikan informasi yang relevan dan sesuai kebijakan privasi.
+Gunakan bahasa formal dan profesional.`,
 
   HR_OPERATIONAL_DATA: `Anda adalah asisten HR profesional berbahasa Indonesia.
 Jawab pertanyaan tentang data operasional HR (statistik tim, tren kehadiran, dll).
@@ -45,10 +58,70 @@ export type ChatResponse = {
 
 export const ragService = {
   /**
-   * Classify question intent
+   * Detect if question targets self or another employee
    */
-  classifyIntent(question: string): QuestionIntent {
+  detectTarget(question: string): QuestionTarget {
     const lower = question.toLowerCase();
+
+    // Self-referencing keywords
+    const selfKeywords = [
+      "saya",
+      "aku",
+      "ku",
+      "gue",
+      "gw",
+      "saya punya",
+      "milik saya",
+      "data saya",
+    ];
+    const hasSelfReference = selfKeywords.some((kw) => lower.includes(kw));
+
+    // Other employee patterns
+    const otherEmployeePatterns = [
+      /(?:data|cuti|absen|kehadiran|lembur)\s+(?:si\s+)?(\w+)/i,
+      /(?:berapa|apakah)\s+(?:si\s+)?(\w+)\s+(?:terlambat|cuti|hadir|lembur)/i,
+      /(\w+)\s+(?:terlambat|cuti|hadir|lembur)\s+berapa/i,
+      /karyawan\s+(\w+)/i,
+    ];
+
+    // Check for other employee names
+    for (const pattern of otherEmployeePatterns) {
+      const match = question.match(pattern);
+      if (match && match[1]) {
+        const potentialName = match[1].toLowerCase();
+        // Exclude common words that aren't names
+        const excludeWords = [
+          "saya",
+          "aku",
+          "ini",
+          "itu",
+          "yang",
+          "dan",
+          "atau",
+          "untuk",
+          "dari",
+          "ke",
+          "di",
+        ];
+        if (!excludeWords.includes(potentialName) && !hasSelfReference) {
+          return { isSelfQuestion: false, targetEmployeeName: match[1] };
+        }
+      }
+    }
+
+    return { isSelfQuestion: true };
+  },
+
+  /**
+   * Classify question intent with target awareness
+   */
+  classifyIntent(question: string, target: QuestionTarget): QuestionIntent {
+    const lower = question.toLowerCase();
+
+    // If targeting another employee specifically
+    if (!target.isSelfQuestion && target.targetEmployeeName) {
+      return "OTHER_EMPLOYEE_DATA";
+    }
 
     // Employee self-data keywords (personal questions)
     const selfDataKeywords = [
@@ -226,8 +299,16 @@ LEMBUR BULAN INI:
   ): Promise<ChatResponse> {
     const startTime = Date.now();
 
-    // Step 1: Classify intent
-    const intent = this.classifyIntent(question);
+    // Step 1: Detect target (self vs other employee)
+    const target = this.detectTarget(question);
+    console.log(
+      `[RAG] Target: ${
+        target.isSelfQuestion ? "self" : target.targetEmployeeName
+      }`
+    );
+
+    // Step 2: Classify intent with target awareness
+    const intent = this.classifyIntent(question, target);
     console.log(
       `[RAG] Intent: ${intent} for question: "${question.substring(0, 50)}..."`
     );
@@ -235,11 +316,40 @@ LEMBUR BULAN INI:
     let context = "";
     let chunks: { content: string; document_id: string }[] = [];
 
-    // Step 2: Build context based on intent
+    // Step 3: Build context based on intent with access control
     switch (intent) {
       case "EMPLOYEE_SELF_DATA":
         // Get personal data - always allowed for own data
         context = await this.getEmployeeSelfDataContext(userId);
+        break;
+
+      case "OTHER_EMPLOYEE_DATA":
+        // STRICT ACCESS CONTROL: Only HR and Owner can access other employee data
+        if (!userRole || !hasMinimumRole(userRole, "hr")) {
+          return {
+            answer:
+              "Maaf, Anda tidak memiliki akses untuk melihat data karyawan lain. Sebagai karyawan, Anda hanya dapat mengakses data pribadi Anda sendiri. Untuk informasi tentang karyawan lain, silakan hubungi HR.",
+            documentIds: [],
+            chunkCount: 0,
+            processingTimeMs: Date.now() - startTime,
+            intent,
+          };
+        }
+        // HR/Owner can access - find employee and get their data
+        const supabase = createAdminClient();
+        const { data: targetEmployee } = await supabase
+          .from("users")
+          .select("id, full_name, email")
+          .ilike("full_name", `%${target.targetEmployeeName}%`)
+          .limit(1)
+          .single();
+
+        if (targetEmployee) {
+          context = await this.getEmployeeSelfDataContext(targetEmployee.id);
+          context = `DATA KARYAWAN: ${targetEmployee.full_name}\n${context}`;
+        } else {
+          context = `Karyawan dengan nama "${target.targetEmployeeName}" tidak ditemukan dalam sistem.`;
+        }
         break;
 
       case "HR_OPERATIONAL_DATA":
@@ -279,7 +389,30 @@ LEMBUR BULAN INI:
             .map((c, i) => `[Dokumen ${i + 1}]\n${c.content}`)
             .join("\n\n---\n\n");
         } else {
-          context = "Tidak ada dokumen HR yang relevan ditemukan.";
+          // Fallback: provide leave balance info if question is about leave
+          const lowerQ = question.toLowerCase();
+          if (lowerQ.includes("cuti") || lowerQ.includes("leave")) {
+            const { leaveService } = await import("@/services/leave.service");
+            const balance = await leaveService.getBalance(userId);
+            context = `INFORMASI CUTI PERUSAHAAN:
+            
+Berdasarkan sistem HR, setiap karyawan memiliki kuota cuti sebagai berikut:
+- Cuti Tahunan: ${balance.annual_total} hari per tahun
+- Cuti Sakit: ${balance.sick_total} hari per tahun
+
+Data cuti Anda saat ini:
+- Sisa Cuti Tahunan: ${
+              balance.annual_total - balance.annual_used
+            } hari (terpakai: ${balance.annual_used})
+- Sisa Cuti Sakit: ${balance.sick_total - balance.sick_used} hari (terpakai: ${
+              balance.sick_used
+            })
+
+Catatan: Cuti tahunan dapat diajukan setelah masa kerja minimal sesuai kebijakan perusahaan.`;
+          } else {
+            context =
+              "Dokumen kebijakan HR tidak ditemukan. Silakan hubungi HR untuk informasi lebih lanjut.";
+          }
         }
         break;
     }

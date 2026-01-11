@@ -36,6 +36,11 @@ const baseNavItems = [
     minRole: "employee" as UserRole,
   },
   {
+    href: "/dashboard/payroll",
+    label: "Slip Gaji",
+    minRole: "employee" as UserRole,
+  },
+  {
     href: "/dashboard/employee",
     label: "My Profile",
     minRole: "employee" as UserRole,

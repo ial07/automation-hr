@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -17,9 +19,62 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           isUser ? "bg-primary text-primary-foreground" : "bg-muted"
         }`}
       >
-        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-        {message.processingTimeMs && (
-          <p className="text-xs mt-2 opacity-60">
+        {isUser ? (
+          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+        ) : (
+          <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h3: ({ children }) => (
+                  <h3 className="text-sm font-bold mt-3 mb-1">{children}</h3>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-4 space-y-1 mb-2">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal pl-4 space-y-1 mb-2">
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => <li className="text-sm">{children}</li>,
+                strong: ({ children }) => (
+                  <span className="font-bold">{children}</span>
+                ),
+                p: ({ children }) => (
+                  <p className="mb-2 last:mb-0 text-sm">{children}</p>
+                ),
+                code: ({ children }) => (
+                  <code className="bg-black/10 px-1 py-0.5 rounded text-xs font-mono">
+                    {children}
+                  </code>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-2 border rounded-md bg-background">
+                    <table className="min-w-full divide-y divide-border">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="px-3 py-2 bg-muted text-left text-xs font-medium uppercase tracking-wider">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-3 py-2 whitespace-nowrap text-sm border-t border-border">
+                    {children}
+                  </td>
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )}
+
+        {message.processingTimeMs && !isUser && (
+          <p className="text-[10px] mt-2 opacity-60">
             {(message.processingTimeMs / 1000).toFixed(1)}s
           </p>
         )}
