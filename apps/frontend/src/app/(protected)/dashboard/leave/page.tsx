@@ -283,9 +283,9 @@ export default function LeavePage() {
             {data.requests.map((req) => {
               // Custom colors for full badge instead of just text
               let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300";
-              if (req.status === 'approved') badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400";
-              else if (req.status === 'rejected') badgeStyle = "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400";
-              else if (req.status === 'pending') badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400";
+              if (req.status === 'approved_hr' || req.status === 'approved_manager') badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400";
+              else if (req.status === 'rejected_hr' || req.status === 'rejected_manager') badgeStyle = "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400";
+              else if (req.status === 'submitted') badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400";
 
               return (
                 <div key={req.id} className="bg-card p-4 rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
