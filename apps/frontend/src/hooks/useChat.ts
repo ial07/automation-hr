@@ -20,7 +20,7 @@ type ChatResponse = {
 };
 
 async function sendMessage(question: string): Promise<ChatResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, { credentials: "include",
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),

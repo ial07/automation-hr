@@ -14,14 +14,14 @@ type ApprovalsResponse = {
 
 // Fetch user's overtime
 async function fetchOvertime(): Promise<OvertimeResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch overtime");
   return res.json();
 }
 
 // Fetch pending approvals
 async function fetchApprovals(): Promise<ApprovalsResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime/approvals`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime/approvals`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch approvals");
   return res.json();
 }
@@ -30,7 +30,7 @@ async function fetchApprovals(): Promise<ApprovalsResponse> {
 async function submitOvertime(
   input: CreateOvertimeInput
 ): Promise<{ request: OvertimeRequest }> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime`, { credentials: "include",
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -48,7 +48,7 @@ async function processApproval(params: {
   action: "approve" | "reject";
   notes?: string;
 }) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime/${params.id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/overtime/${params.id}`, { credentials: "include",
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: params.action, notes: params.notes }),

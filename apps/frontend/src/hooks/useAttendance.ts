@@ -20,14 +20,14 @@ type AttendanceActionInput = {
 
 // Fetch user's attendance
 async function fetchAttendance(): Promise<AttendanceResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch attendance");
   return res.json();
 }
 
 // Fetch team attendance
 async function fetchTeamAttendance(): Promise<TeamAttendanceResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance/team`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance/team`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch team attendance");
   return res.json();
 }
@@ -36,7 +36,7 @@ async function fetchTeamAttendance(): Promise<TeamAttendanceResponse> {
 async function performAction(
   input: AttendanceActionInput
 ): Promise<{ record: AttendanceRecord }> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, { credentials: "include",
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

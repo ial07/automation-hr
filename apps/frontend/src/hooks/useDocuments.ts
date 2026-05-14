@@ -15,14 +15,14 @@ export type Document = {
 };
 
 async function fetchDocuments(): Promise<Document[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch documents");
   const data = await res.json();
   return data.documents;
 }
 
 async function uploadDocument(formData: FormData): Promise<Document> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`, { credentials: "include",
     method: "POST",
     body: formData,
   });
@@ -34,7 +34,7 @@ async function uploadDocument(formData: FormData): Promise<Document> {
 }
 
 async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, { method: "DELETE" });
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, { credentials: "include", method: "DELETE" });
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data.error || "Failed to delete document");

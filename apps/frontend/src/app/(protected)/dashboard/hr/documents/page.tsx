@@ -18,6 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const STATUS_COLORS: Record<Document["status"], string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -25,6 +32,15 @@ const STATUS_COLORS: Record<Document["status"], string> = {
   ready: "bg-green-100 text-green-800",
   failed: "bg-red-100 text-red-800",
 };
+
+const CATEGORIES = [
+  "Kebijakan Cuti",
+  "Kebijakan Lembur",
+  "SOP Absensi",
+  "Buku Saku Karyawan",
+  "Kontrak & Peraturan",
+  "Umum",
+];
 
 export default function DocumentsPage() {
   const { data: documents, isLoading, refetch } = useDocuments();
@@ -119,12 +135,18 @@ export default function DocumentsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Policy"
-                  />
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Pilih Kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">

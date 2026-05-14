@@ -25,14 +25,14 @@ type ApprovalsResponse = {
 
 // Fetch user's leave requests
 async function fetchLeaveRequests(): Promise<LeaveListResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch leave requests");
   return res.json();
 }
 
 // Fetch leave balance
 async function fetchBalance(): Promise<BalanceResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/balance`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/balance`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch balance");
   return res.json();
 }
@@ -41,7 +41,7 @@ async function fetchBalance(): Promise<BalanceResponse> {
 async function submitLeaveRequest(
   input: CreateLeaveRequestInput
 ): Promise<{ request: LeaveRequest }> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave`, { credentials: "include",
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -59,7 +59,7 @@ async function updateLeaveRequest(params: {
   action: "approve" | "reject";
   notes?: string;
 }): Promise<{ request: LeaveRequest }> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/${params.id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/${params.id}`, { credentials: "include",
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: params.action, notes: params.notes }),
@@ -73,7 +73,7 @@ async function updateLeaveRequest(params: {
 
 // Fetch pending approvals (for managers/HR)
 async function fetchApprovals(): Promise<ApprovalsResponse> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/approvals`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leave/approvals`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch approvals");
   return res.json();
 }

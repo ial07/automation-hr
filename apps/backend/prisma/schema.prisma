@@ -1,13 +1,223 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [vector, pgcrypto]
+}
+
+enum UserRole {
+  employee
+  manager
+  hr
+  owner
+  @@map("user_role")
+}
+
+enum LeaveType {
+  annual
+  sick
+  maternity
+  special
+  @@map("leave_type")
+}
+
+enum LeaveStatus {
+  draft
+  submitted
+  approved_manager
+  rejected_manager
+  approved_hr
+  rejected_hr
+  @@map("leave_status")
+}
+
+enum AttendanceStatus {
+  present
+  late
+  absent
+  wfh
+  leave
+  @@map("attendance_status")
+}
+
+enum OvertimeStatus {
+  submitted
+  approved_manager
+  rejected_manager
+  approved_hr
+  rejected_hr
+  @@map("overtime_status")
+}
+
+model User {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String   @unique
+  password_hash    String
+  full_name        String?
+  role             UserRole @default(employee)
+  manager_id       String?  @db.Uuid
+  manager          User?    @relation("ManagerToEmployee", fields: [manager_id], references: [id])
+  employees        User[]   @relation("ManagerToEmployee")
+  created_at       DateTime @default(now()) @db.Timestamptz
+  updated_at       DateTime @default(now()) @db.Timestamptz
+
+  attendance_records AttendanceRecord[]
+  leave_requests     LeaveRequest[]     @relation("EmployeeLeaveRequests")
+  managed_leaves     LeaveRequest[]     @relation("ManagerLeaveApprovals")
+  hr_leaves          LeaveRequest[]     @relation("HrLeaveApprovals")
+  leave_balances     LeaveBalance?
+  overtime_records   OvertimeRecord[]   @relation("EmployeeOvertimeRequests")
+  approved_overtimes OvertimeRecord[]   @relation("ManagerOvertimeApprovals")
+  chat_logs          ChatLog[]
+
+  @@map("users")
+}
+
+model AttendanceRecord {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String   @db.Uuid
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  date             DateTime @db.Date
+  check_in_time    DateTime? @db.Timestamptz
+  check_out_time   DateTime? @db.Timestamptz
+  status           AttendanceStatus @default(absent)
+  notes            String?
+  leave_request_id String?  @db.Uuid
+  leave_request    LeaveRequest? @relation(fields: [leave_request_id], references: [id])
+  created_at       DateTime @default(now()) @db.Timestamptz
+  updated_at       DateTime @default(now()) @db.Timestamptz
+
+  overtime_records OvertimeRecord[]
+
+  @@unique([user_id, date])
+  @@index([user_id, date(sort: Desc)])
+  @@index([date])
+  @@index([leave_request_id])
+  @@map("attendance_records")
+}
+
+model LeaveRequest {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employee_id         String   @db.Uuid
+  employee            User     @relation("EmployeeLeaveRequests", fields: [employee_id], references: [id], onDelete: Cascade)
+  leave_type          LeaveType
+  start_date          DateTime @db.Date
+  end_date            DateTime @db.Date
+  total_days          Int
+  reason              String?
+  status              LeaveStatus @default(draft)
+  manager_id          String?  @db.Uuid
+  manager             User?    @relation("ManagerLeaveApprovals", fields: [manager_id], references: [id])
+  manager_notes       String?
+  manager_action_at   DateTime? @db.Timestamptz
+  hr_id               String?  @db.Uuid
+  hr                  User?    @relation("HrLeaveApprovals", fields: [hr_id], references: [id])
+  hr_notes            String?
+  hr_action_at        DateTime? @db.Timestamptz
+  policy_check_result Json?
+  created_at          DateTime @default(now()) @db.Timestamptz
+  updated_at          DateTime @default(now()) @db.Timestamptz
+
+  attendance_records  AttendanceRecord[]
+
+  @@index([employee_id])
+  @@index([status])
+  @@index([start_date, end_date])
+  @@map("leave_requests")
+}
+
+model LeaveBalance {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @unique @db.Uuid
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  annual_total Int     @default(12)
+  annual_used  Int     @default(0)
+  sick_total   Int     @default(14)
+  sick_used    Int     @default(0)
+  year        Int      @default(dbgenerated("EXTRACT(YEAR FROM NOW())"))
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @db.Timestamptz
+
+  @@map("leave_balances")
+}
+
+model OvertimeRecord {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employee_id          String   @db.Uuid
+  employee             User     @relation("EmployeeOvertimeRequests", fields: [employee_id], references: [id], onDelete: Cascade)
+  date                 DateTime @db.Date
+  start_time           DateTime @db.Time
+  end_time             DateTime @db.Time
+  hours                Decimal  @db.Decimal(4,2)
+  reason               String
+  status               OvertimeStatus @default(submitted)
+  attendance_record_id String?  @db.Uuid
+  attendance_record    AttendanceRecord? @relation(fields: [attendance_record_id], references: [id])
+  approved_by          String?  @db.Uuid
+  manager              User?    @relation("ManagerOvertimeApprovals", fields: [approved_by], references: [id])
+  approved_at          DateTime? @db.Timestamptz
+  notes                String?
+  created_at           DateTime @default(now()) @db.Timestamptz
+  updated_at           DateTime @default(now()) @db.Timestamptz
+
+  @@index([employee_id])
+  @@index([date])
+  @@index([status])
+  @@map("overtime_records")
+}
+
+model ChatLog {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String?  @db.Uuid
+  user               User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  question           String
+  answer             String
+  document_ids       String[] @db.Uuid
+  chunk_count        Int?
+  processing_time_ms Int?
+  created_at         DateTime @default(now()) @db.Timestamptz
+
+  @@index([user_id])
+  @@index([created_at(sort: Desc)])
+  @@map("chat_logs")
+}
+
+enum DocumentStatus {
+  pending
+  processing
+  ready
+  failed
+  @@map("document_status")
+}
+
+model Document {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String
+  category      String?
+  file_name     String
+  file_size     Int?
+  mime_type     String?
+  status        DocumentStatus @default(pending)
+  error_message String?
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  chunks        DocumentChunk[]
+
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id           String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_id  String?                  @db.Uuid
+  document     Document?                @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  content      String
+  token_count  Int?
+  embedding    Unsupported("vector(1536)")?
+
+  @@index([document_id])
+  @@map("document_chunks")
 }

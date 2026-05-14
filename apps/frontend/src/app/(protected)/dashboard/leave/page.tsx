@@ -30,6 +30,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CalendarDays, Plus, Activity, Stethoscope, Clock } from "lucide-react";
+
+// Helper component for circular progress
+function CircularProgress({ value, max, label, colorClass }: { value: number, max: number, label: string, colorClass: string }) {
+  const percentage = Math.round((value / max) * 100);
+  const strokeDashoffset = 125.6 - (125.6 * percentage) / 100;
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-20 h-20">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+          <circle
+            className="text-muted/50 stroke-current"
+            strokeWidth="4"
+            cx="24"
+            cy="24"
+            r="20"
+            fill="transparent"
+          ></circle>
+          <circle
+            className={`${colorClass} stroke-current transition-all duration-1000 ease-in-out`}
+            strokeWidth="4"
+            strokeLinecap="round"
+            cx="24"
+            cy="24"
+            r="20"
+            fill="transparent"
+            strokeDasharray="125.6"
+            strokeDashoffset={strokeDashoffset}
+          ></circle>
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center flex-col">
+          <span className="text-xl font-bold">{value}</span>
+        </div>
+      </div>
+      <span className="text-xs font-medium text-muted-foreground mt-2">{label}</span>
+    </div>
+  );
+}
 
 export default function LeavePage() {
   const { data, isLoading, refetch } = useLeaveRequests();
@@ -65,48 +104,79 @@ export default function LeavePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Pengajuan Cuti</h1>
-          <p className="text-muted-foreground">Kelola pengajuan cuti Anda</p>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <CalendarDays className="w-8 h-8 text-primary" /> Pengajuan Cuti
+          </h1>
+          <p className="text-muted-foreground mt-1">Kelola dan pantau sisa cuti Anda</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            Refresh
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => refetch()} className="shadow-sm">
+            Refresh Data
           </Button>
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Batal" : "Ajukan Cuti"}
+          <Button 
+            onClick={() => setShowForm(!showForm)} 
+            className={`shadow-md transition-all ${showForm ? 'bg-muted text-foreground hover:bg-muted/80' : 'bg-primary hover:bg-primary/90'}`}
+          >
+            {showForm ? "Batal Pengajuan" : <><Plus className="w-4 h-4 mr-1" /> Ajukan Cuti</>}
           </Button>
         </div>
       </div>
 
       {/* Leave Balance Cards */}
       {balanceData && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="shadow-sm border-indigo-500/10 overflow-hidden relative group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+            <CardHeader className="pb-2 relative z-10">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-500" />
                 Cuti Tahunan
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {balanceData.remaining.annual} /{" "}
-                {balanceData.balance.annual_total}
+            <CardContent className="relative z-10 flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold tracking-tight text-foreground">
+                  {balanceData.remaining.annual} <span className="text-lg text-muted-foreground font-normal">hari</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total kuota: {balanceData.balance.annual_total} hari
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">hari tersisa</p>
+              <CircularProgress 
+                value={balanceData.remaining.annual} 
+                max={balanceData.balance.annual_total} 
+                label="Tersisa" 
+                colorClass="text-indigo-500" 
+              />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Cuti Sakit</CardTitle>
+          
+          <Card className="shadow-sm border-rose-500/10 overflow-hidden relative group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+            <CardHeader className="pb-2 relative z-10">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Stethoscope className="w-5 h-5 text-rose-500" />
+                Cuti Sakit
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {balanceData.remaining.sick} / {balanceData.balance.sick_total}
+            <CardContent className="relative z-10 flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold tracking-tight text-foreground">
+                  {balanceData.remaining.sick} <span className="text-lg text-muted-foreground font-normal">hari</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total kuota: {balanceData.balance.sick_total} hari
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">hari tersisa</p>
+              <CircularProgress 
+                value={balanceData.remaining.sick} 
+                max={balanceData.balance.sick_total} 
+                label="Tersisa" 
+                colorClass="text-rose-500" 
+              />
             </CardContent>
           </Card>
         </div>
@@ -114,27 +184,27 @@ export default function LeavePage() {
 
       {/* Leave Request Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Formulir Pengajuan Cuti</CardTitle>
-            <CardDescription>Isi detail pengajuan cuti Anda</CardDescription>
+        <Card className="border-primary/20 shadow-lg animate-in slide-in-from-top-4 fade-in duration-300">
+          <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
+            <CardTitle className="text-lg">Formulir Pengajuan Cuti Baru</CardTitle>
+            <CardDescription>Isi detail di bawah ini untuk mengajukan permohonan cuti</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="bg-destructive/10">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="leaveType">Jenis Cuti *</Label>
+                  <Label htmlFor="leaveType" className="text-xs uppercase font-semibold text-muted-foreground">Jenis Cuti <span className="text-destructive">*</span></Label>
                   <Select
                     value={leaveType}
                     onValueChange={(v) => setLeaveType(v as LeaveType)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 bg-background">
                       <SelectValue placeholder="Pilih jenis cuti" />
                     </SelectTrigger>
                     <SelectContent>
@@ -148,100 +218,117 @@ export default function LeavePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Tanggal Mulai *</Label>
+                  <Label htmlFor="startDate" className="text-xs uppercase font-semibold text-muted-foreground">Tanggal Mulai <span className="text-destructive">*</span></Label>
                   <Input
                     id="startDate"
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     required
+                    className="h-12 bg-background"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">Tanggal Selesai *</Label>
+                  <Label htmlFor="endDate" className="text-xs uppercase font-semibold text-muted-foreground">Tanggal Selesai <span className="text-destructive">*</span></Label>
                   <Input
                     id="endDate"
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     required
+                    className="h-12 bg-background"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reason">Alasan (opsional)</Label>
+                <Label htmlFor="reason" className="text-xs uppercase font-semibold text-muted-foreground">Alasan (Opsional)</Label>
                 <Input
                   id="reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Contoh: Keperluan keluarga"
+                  placeholder="Contoh: Keperluan keluarga mendesak"
+                  className="h-12 bg-background"
                 />
               </div>
 
-              <Button type="submit" disabled={submitMutation.isPending}>
-                {submitMutation.isPending ? "Mengajukan..." : "Ajukan Cuti"}
-              </Button>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+                  Batal
+                </Button>
+                <Button type="submit" disabled={submitMutation.isPending} className="px-8 shadow-md">
+                  {submitMutation.isPending ? "Mengajukan..." : "Kirim Pengajuan"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
       )}
 
       {/* Leave Requests List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Riwayat Pengajuan</CardTitle>
-          <CardDescription>Pengajuan cuti Anda</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-muted-foreground">Memuat...</p>
-          ) : data?.requests && data.requests.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-4">Jenis</th>
-                    <th className="text-left py-2 px-4">Tanggal</th>
-                    <th className="text-left py-2 px-4">Hari</th>
-                    <th className="text-left py-2 px-4">Status</th>
-                    <th className="text-left py-2 px-4">Diajukan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.requests.map((req) => (
-                    <tr key={req.id} className="border-b">
-                      <td className="py-2 px-4">
-                        {LEAVE_TYPES[req.leave_type]}
-                      </td>
-                      <td className="py-2 px-4">
-                        {req.start_date} - {req.end_date}
-                      </td>
-                      <td className="py-2 px-4">{req.total_days}</td>
-                      <td className="py-2 px-4">
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            LEAVE_STATUS_COLORS[req.status]
-                          }`}
-                        >
-                          {LEAVE_STATUSES[req.status]}
+      <div>
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary" />
+          Riwayat Pengajuan Cuti
+        </h2>
+        
+        {isLoading ? (
+          <div className="flex justify-center p-12 bg-card rounded-xl border border-border">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : data?.requests && data.requests.length > 0 ? (
+          <div className="space-y-3">
+            {data.requests.map((req) => {
+              // Custom colors for full badge instead of just text
+              let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300";
+              if (req.status === 'approved') badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400";
+              else if (req.status === 'rejected') badgeStyle = "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400";
+              else if (req.status === 'pending') badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400";
+
+              return (
+                <div key={req.id} className="bg-card p-4 rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-muted p-3 rounded-lg flex-shrink-0">
+                      <CalendarDays className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-foreground">{LEAVE_TYPES[req.leave_type]}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                          {req.total_days} Hari
                         </span>
-                      </td>
-                      <td className="py-2 px-4">
-                        {new Date(req.created_at).toLocaleDateString("id-ID")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">Belum ada pengajuan cuti.</p>
-          )}
-        </CardContent>
-      </Card>
+                      </div>
+                      <div className="text-sm text-muted-foreground font-mono">
+                        {new Date(req.start_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })} 
+                        {" — "} 
+                        {new Date(req.end_date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                      {req.reason && <div className="text-sm mt-2 italic text-muted-foreground">"{req.reason}"</div>}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${badgeStyle}`}>
+                      {LEAVE_STATUSES[req.status]}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Diajukan: {new Date(req.created_at).toLocaleDateString("id-ID")}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center p-12 bg-card border border-dashed rounded-xl text-muted-foreground">
+            <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium text-foreground mb-1">Belum Ada Pengajuan</p>
+            <p>Anda belum pernah mengajukan cuti sejauh ini.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

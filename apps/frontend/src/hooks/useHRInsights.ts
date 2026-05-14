@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ComprehensiveInsights } from "@/services/intelligence.service";
 
 async function fetchInsights(): Promise<ComprehensiveInsights> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hr/insights`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hr/insights`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch insights");
   return res.json();
 }
