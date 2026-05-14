@@ -12,11 +12,16 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
   
+  const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : ['http://localhost:3000'];
+
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   });
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
 }
 bootstrap();
