@@ -20,6 +20,13 @@ Built with **Next.js 16** · **OpenAI GPT-4o** · **NeonDB** · **RAG Pipeline**
 
 ---
 
+## 🚀 Live Demo
+
+**Experience the platform live:**
+👉 [https://automation-hr.vercel.app/login](https://automation-hr.vercel.app/login)
+
+---
+
 ## 📌 Overview
 
 **AutomationHR** is an enterprise-grade AI-powered HR management platform that intelligently automates core HR operations. Powered by RAG (Retrieval-Augmented Generation) and built on serverless infrastructure with NeonDB, it enables employees to interact naturally with their HR systems.
@@ -121,6 +128,8 @@ Four-tier access hierarchy with strict data isolation:
 ---
 
 ## 🏗️ Technical Architecture
+
+### High-Level Architecture
 
 ### High-Level Architecture
 
@@ -293,15 +302,13 @@ npx prisma db seed
 ### 5️⃣ Seed Demo Data (Optional)
 
 ```bash
-# Create sample users
-npx tsx scripts/seed-users.ts
-
-# Create sample operational data (attendance, leave, overtime)
-npx tsx scripts/seed-operational-data.ts
+cd apps/backend
+npx ts-node seed.ts
 ```
 
 ### 6️⃣ Run Development Server
 
+From the root directory:
 ```bash
 npm run dev
 ```
@@ -573,6 +580,7 @@ payslips           (Generated payslips)
 
 | Category | Technology |
 |:---|:---|
+| **Architecture** | Monorepo (npm workspaces) |
 | **Frontend** | Next.js 16, React 19, TypeScript 5 |
 | **UI Components** | ShadCN/UI, Radix UI, Lucide Icons |
 | **Styling** | Tailwind CSS 4, next-themes (dark mode) |
